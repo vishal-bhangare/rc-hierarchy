@@ -6,7 +6,7 @@
 "module": "./dist/esm/index.js",
 "types": "./dist/esm/index.d.ts",
   "scripts": {
-    "build": "npm build:esm && npm build:cjs",
+    "build": "npm run build:esm && npm  run build:cjs",
     "build:esm": "tsc",
     "build:cjs": "tsc --module commonjs --outDir dist/cjs",
     "lint": "eslint \"{**/*,*}.{js,ts,jsx,tsx}\" --fix",
@@ -45,6 +45,7 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ]
 }
