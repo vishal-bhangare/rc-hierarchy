@@ -76,9 +76,10 @@ const Hierarchy: FC<Props> = ({ data }: Props) => {
 
     const totalLeafs = countLeafs(data, 0, 1, isCompact, ct)
     const { wid, maxH } = calcWidth(data, 0, 1, isCompact, 0, 0, ctx, options)
-    let newCanvasWidth = wid + strokeWidth * totalLeafs // adding stroke width to canvas width
+    let newCanvasWidth = wid
+    newCanvasWidth += strokeWidth * totalLeafs // adding stroke width to canvas width
     newCanvasWidth += boxSpacing * totalLeafs + boxSpacing // adding box-spacing to canvas width and 1 pt of boxSpacing to compensate last node
-    newCanvasWidth = wid + canvasPadding * 2
+    newCanvasWidth += canvasPadding * 2
     const newCanvasHeight = maxH + canvasPadding * 2 + strokeWidth
 
     canvas!.width = newCanvasWidth
