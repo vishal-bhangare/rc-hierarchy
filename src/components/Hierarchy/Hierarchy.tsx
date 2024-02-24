@@ -1,5 +1,5 @@
-import { FC, useEffect, useState } from 'react'
-import { DrawingSettings, Coordinates } from '../../entities'
+import React, { FC, useEffect, useState } from 'react'
+import { DrawingConfig, DrawingConfigPropI, Coordinates } from '../../entities'
 
 import {
   calcWidth,
@@ -11,51 +11,96 @@ import {
   getRandomInt,
   getSibCount,
   ObjectLen,
+  setColorScheme,
   setFont,
   textHeight,
   textWidth,
 } from '../../utils'
-import React from 'react'
 
 export const colorPalettes = [
-  ['#26C6DA', '#004851', '#00282E'],
-  ['#2E78D2', '#112E51', '#081627'],
-  ['#FF7043', '#853A22', '#5D2818'],
-  ['#78909C', '#364850', '#222C31'],
+  {
+    strokeColor: '#00B395',
+    backgroundColor: '#DDF6F2',
+    lineColor: '#379188',
+    textColor: '#000',
+  },
+  {
+    strokeColor: '#9D6780',
+    backgroundColor: '#EDDFE5',
+    lineColor: '#990035',
+    textColor: '#000',
+  },
+  {
+    strokeColor: '#FF6384',
+    backgroundColor: '#FFE3E9',
+    lineColor: '#A8718A',
+    textColor: '#000',
+  },
+  {
+    strokeColor: '#4BC0C0',
+    backgroundColor: '#D9E5E1',
+    lineColor: '#45826F',
+    textColor: '#000',
+  },
+  {
+    strokeColor: '#FF9F40',
+    backgroundColor: '#F5E1DC',
+    lineColor: '#A56B5C',
+    textColor: '#000',
+  },
+  {
+    strokeColor: '#9966FF',
+    backgroundColor: '#D5E9F1',
+    lineColor: '#27849E',
+    textColor: '#000',
+  },
+  {
+    strokeColor: '#A4B0C6',
+    backgroundColor: '#eee',
+    lineColor: '#8f9bb1',
+    textColor: '#000',
+  },
 ]
 
 interface Props {
   data: any
+  config?: DrawingConfigPropI
 }
 
-const Hierarchy: FC<Props> = ({ data }: Props) => {
-  // const canvasRef = useRef<HTMLCanvasElement>();
-  const [options, setOptions] = useState<DrawingSettings>({
-    fontSize: 20,
-    fontFamily: 'Arial',
-    xt: 30,
-    yt: 30,
-    ct: 3,
-    isCompact: true,
-    maxWid: 100,
-    minWid: 50,
-    strokeColor: '#78909C',
-    strokeWidth: 3,
-    boxSpacing: 5,
-    boxPadding: 4,
-    boxRadius: 5,
-    canvasPadding: 20,
+const defaultConfig: DrawingConfig = {
+  fontSize: 16,
+  fontFamily: 'Arial',
+  xt: 30,
+  yt: 30,
+  ct: 3,
+  isCompact: true,
+  maxWid: 100,
+  minWid: 50,
+  strokeWidth: 3,
+  boxSpacing: 15,
+  boxPadding: 4,
+  boxRadius: 5,
+  canvasPadding: 20,
+  colorScheme: colorPalettes[getRandomInt(0, colorPalettes.length - 1)],
+}
+
+const Hierarchy: FC<Props> = (props: Props) => {
+  const [config, setConfig] = useState<DrawingConfig>({
+    ...defaultConfig,
+    ...props.config,
+    colorScheme: setColorScheme(defaultConfig.colorScheme, props.config!.colorScheme!),
   })
 
-  // let data = data1;
   useEffect(() => {
-    // const canvas = canvasRef.current;
+    setConfig((config) => ({
+      ...config,
+      ...props.config,
+      colorScheme: setColorScheme(config.colorScheme, props.config!.colorScheme!),
+    }))
+  }, [props.config])
+  useEffect(() => {
     const canvas = document.getElementById('canvas') as HTMLCanvasElement
     const ctx = canvas.getContext('2d')!
-
-    const curColor = colorPalettes[getRandomInt(0, 3)]
-
-    setOptions((options) => ({ ...options, strokeColor: curColor[1] }))
 
     const {
       fontSize,
@@ -66,16 +111,19 @@ const Hierarchy: FC<Props> = ({ data }: Props) => {
       isCompact,
       maxWid,
       minWid,
-      strokeColor,
+      colorScheme,
       strokeWidth,
       boxSpacing,
       boxPadding,
       boxRadius,
       canvasPadding,
-    } = options
+    } = config
 
+    const { strokeColor, backgroundColor, textColor, lineColor } = colorScheme
+
+    const data = props.data
     const totalLeafs = countLeafs(data, 0, 1, isCompact, ct)
-    const { wid, maxH } = calcWidth(data, 0, 1, isCompact, 0, 0, ctx, options)
+    const { wid, maxH } = calcWidth(data, 0, 1, isCompact, 0, 0, ctx, config)
     let newCanvasWidth = wid
     newCanvasWidth += strokeWidth * totalLeafs // adding stroke width to canvas width
     newCanvasWidth += boxSpacing * totalLeafs + boxSpacing // adding box-spacing to canvas width and 1 pt of boxSpacing to compensate last node
@@ -128,7 +176,7 @@ const Hierarchy: FC<Props> = ({ data }: Props) => {
       if (!ObjectLen(parent) || !ObjectLen(curr)) return
       ctx.beginPath()
       ctx.lineWidth = 2
-      ctx.strokeStyle = curColor[2]
+      ctx.strokeStyle = lineColor!
 
       if (drawCompact) {
         ctx.moveTo(parent.x + xt / 2, parent.y + parentH + strokeWidth / 2)
@@ -147,9 +195,9 @@ const Hierarchy: FC<Props> = ({ data }: Props) => {
 
     function drawRect(cords: Coordinates, height: number, width: number) {
       ctx.beginPath()
-      ctx.fillStyle = curColor[0]
+      ctx.fillStyle = backgroundColor!
       ctx.roundRect(cords.x, cords.y, width, height, boxRadius)
-      ctx.strokeStyle = strokeColor
+      ctx.strokeStyle = strokeColor!
       ctx.lineWidth = strokeWidth
       ctx.stroke()
       ctx.fill()
@@ -159,7 +207,7 @@ const Hierarchy: FC<Props> = ({ data }: Props) => {
     function drawText(lines: string[], cords: Coordinates, lineHeight: number) {
       let y = cords.y
       ctx.beginPath()
-      ctx.fillStyle = 'black'
+      ctx.fillStyle = textColor!
       ctx.textBaseline = 'top'
 
       for (const line of lines) {
@@ -182,13 +230,12 @@ const Hierarchy: FC<Props> = ({ data }: Props) => {
       setFont(ctx, fontFamily, fontSize)
       Object.entries(obj).forEach((elem) => {
         const curLeafCount = Math.max(1, countLeafs(elem[1], 0, depth, false, ct))
-        const { wid } = calcWidth({ [elem[0]]: elem[1] }, 0, depth, false, 0, 0, ctx, options)
+        const { wid } = calcWidth({ [elem[0]]: elem[1] }, 0, depth, false, 0, 0, ctx, config)
 
-        const textWid = textWidth(elem[0], ctx)
         const textHT = textHeight(elem[0], ctx)
 
         const curWidth = wid + strokeWidth * curLeafCount
-        let rectWid = Math.max(minWid, Math.min(maxWid, textWid))
+        let rectWid = Math.max(minWid, Math.min(maxWid, curWidth))
 
         const { lines, lineCount } = getLines(ctx, elem[0], rectWid)
         let rectHeight = textHT * lineCount
@@ -201,7 +248,6 @@ const Hierarchy: FC<Props> = ({ data }: Props) => {
         drawRect(cords, rectHeight, rectWid)
         if (depth > 1) drawLine(parent, cords, rectWid, rectHeight, parentW, parentH, xt, yt, isCompact)
         drawText(lines, cords, textHT)
-        console.log(elem[0], curWidth, curLeafCount, cords)
         const childCount = countChilds(Object.keys(elem[1]))
         if (childCount) {
           const parentWidth = curWidth
@@ -213,7 +259,7 @@ const Hierarchy: FC<Props> = ({ data }: Props) => {
           // prevYPos = prevObj.prevYPos;
           prevXPos += parentWidth + boxSpacing * curLeafCount
         } else {
-          prevXPos += curWidth + boxSpacing
+          prevXPos += rectWid + boxSpacing
         }
       })
 
@@ -242,9 +288,8 @@ const Hierarchy: FC<Props> = ({ data }: Props) => {
         const textWid = textWidth(elem[0], ctx)
         const textHT = textHeight(elem[0], ctx)
 
-        const { wid } = calcWidth({ [elem[0]]: elem[1] }, 0, depth, isCompact, cDepth, 0, ctx, options)
+        const { wid } = calcWidth({ [elem[0]]: elem[1] }, 0, depth, isCompact, cDepth, 0, ctx, config)
         const curWidth = wid + strokeWidth * curLeafCount
-
         let rectWid = Math.max(minWid, Math.min(maxWid, textWid))
         const { lines, lineCount } = getLines(ctx, elem[0], rectWid)
         let rectHeight = textHT * lineCount
@@ -277,12 +322,9 @@ const Hierarchy: FC<Props> = ({ data }: Props) => {
               depth == ct || childCount > 2 ? curWidth - xt * curDepth : rectWid,
               strokeWidth,
             )
-        // console.log(elem[0], cords, curWidth, rectHeight)
         drawRect(cords, rectHeight, rectWid)
         if (depth > 1) drawLine(parent, cords, rectWid, rectHeight, parentW, parentH, xt, yt, drawCompact)
         drawText(lines, cords, textHT)
-        // console.log(elem[0], lineCount, rectWid)
-        // console.log("--------------------------")
 
         if (childCount) {
           prevYPos += rectHeight + yt
@@ -315,7 +357,6 @@ const Hierarchy: FC<Props> = ({ data }: Props) => {
             prevXPos += boxSpacing * curLeafCount
           } else {
             prevYPos = prevObj.prevYPos
-            prevXPos = prevObj.prevXPos
           }
         } else {
           if (!drawCompact) {
@@ -328,7 +369,7 @@ const Hierarchy: FC<Props> = ({ data }: Props) => {
 
       return { prevXPos, prevYPos, maxCDepth }
     }
-  }, [])
+  }, [config, props.data])
 
   return <canvas id='canvas'></canvas>
 }

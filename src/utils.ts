@@ -1,4 +1,4 @@
-import { Coordinates, DrawingSettings } from './entities'
+import { ColorScheme, Coordinates, DrawingConfig } from './entities'
 
 export function getCords(
   x: number,
@@ -15,7 +15,6 @@ export function getCords(
 
 export function getDepth(obj: any): number {
   let depth: number = 0
-
   for (const key in obj) {
     if (Object.prototype.hasOwnProperty.call(obj, key) && typeof obj[key] === 'object') {
       const currentDepth: number = 1 + getDepth(obj[key])
@@ -146,7 +145,7 @@ export function calcWidth(
   cDepth: number,
   maxi: number,
   ctx: CanvasRenderingContext2D,
-  options: DrawingSettings,
+  options: DrawingConfig,
   prevH: number = 0,
   maxH: number = 0,
 ): { wid: number; maxi: number; maxH: number; prevH: number } {
@@ -184,7 +183,7 @@ export function calcWidth(
 
       if (depth >= ct || drawCompact || childCnt > 2) cDepth = cDepth - 1
 
-      wid += obj.wid
+      wid = drawCompact ? obj.wid : wid + obj.wid
       maxi = obj.maxi
       prevH = !drawCompact ? parentPrevH - (curH + yt) : obj.prevH
       maxH = obj.maxH
@@ -199,4 +198,13 @@ export function calcWidth(
 
 export function setFont(ctx: CanvasRenderingContext2D, fontFamily: string, fontSize: number): void {
   ctx.font = `${fontSize}px ${fontFamily}`
+}
+
+export function setColorScheme(curColorSchme: ColorScheme, newColorSchme: ColorScheme) {
+  for (const prop in newColorSchme) {
+    if (Object.prototype.hasOwnProperty.call(curColorSchme, prop)) {
+      curColorSchme[prop as keyof ColorScheme] = newColorSchme[prop as keyof ColorScheme]
+    }
+  }
+  return curColorSchme
 }

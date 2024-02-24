@@ -1,21 +1,46 @@
-export interface DrawingSettings {
-  fontSize: number
-  fontFamily: string
-  xt: number
-  yt: number
-  ct: number
-  isCompact: boolean
-  maxWid: number
-  minWid: number
-  strokeColor: string
-  strokeWidth: number
-  boxSpacing: number
-  boxPadding: number
-  boxRadius: number
-  canvasPadding: number
+export interface DrawingConfig {
+  fontSize: number // The size of the font used for text rendering
+  fontFamily: string // The font family for text rendering
+  xt: number // The horizontal spacing from the parent's x position
+  yt: number // The vertical spacing applied for each depth level
+  ct: number // The threshold depth for drawing nodes in compact mode (default is 3; does not support depths greater than 3)
+  isCompact: boolean // Indicates whether to draw in compact mode (true) or normal mode (false)
+  maxWid: number // The maximum width for text boxes
+  minWid: number // The minimum width for text boxes
+  strokeWidth: number // The width of strokes (borders)
+  boxSpacing: number // The space between two text boxes
+  boxPadding: number // The space between the stroke/border and text content inside the text box
+  boxRadius: number // The roundness of the text boxes
+  canvasPadding: number // The space inside the canvas (padding),
+  colorScheme: ColorScheme
+}
+
+export interface DrawingConfigPropI {
+  fontSize?: number // The size of the font used for text rendering
+  fontFamily?: string // The font family for text rendering
+  xt?: number // The horizontal spacing from the parent's x position
+  yt?: number // The vertical spacing applied for each depth level
+  ct?: number // The threshold depth for drawing nodes in compact mode (default is 3; does not support depths greater than 3)
+  isCompact?: boolean // Indicates whether to draw in compact mode (true) or normal mode (false)
+  maxWid?: number // The maximum width for text boxes
+  minWid?: number // The minimum width for text boxes
+  strokeColor?: string // The color used for strokes (borders)
+  strokeWidth?: number // The width of strokes (borders)
+  boxSpacing?: number // The space between two text boxes
+  boxPadding?: number // The space between the stroke/border and text content inside the text box
+  boxRadius?: number // The roundness of the text boxes
+  canvasPadding?: number // The space inside the canvas (padding);
+  colorScheme?: ColorScheme
 }
 
 export interface Coordinates {
   x: number
   y: number
+}
+
+export interface ColorScheme {
+  strokeColor?: string
+  backgroundColor?: string
+  lineColor?: string
+  textColor?: string
 }
