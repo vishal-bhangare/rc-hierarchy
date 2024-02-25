@@ -16,51 +16,7 @@ import {
   textHeight,
   textWidth,
 } from '../../utils'
-
-export const colorPalettes = [
-  {
-    strokeColor: '#00B395',
-    backgroundColor: '#DDF6F2',
-    lineColor: '#379188',
-    textColor: '#000',
-  },
-  {
-    strokeColor: '#9D6780',
-    backgroundColor: '#EDDFE5',
-    lineColor: '#990035',
-    textColor: '#000',
-  },
-  {
-    strokeColor: '#FF6384',
-    backgroundColor: '#FFE3E9',
-    lineColor: '#A8718A',
-    textColor: '#000',
-  },
-  {
-    strokeColor: '#4BC0C0',
-    backgroundColor: '#D9E5E1',
-    lineColor: '#45826F',
-    textColor: '#000',
-  },
-  {
-    strokeColor: '#FF9F40',
-    backgroundColor: '#F5E1DC',
-    lineColor: '#A56B5C',
-    textColor: '#000',
-  },
-  {
-    strokeColor: '#9966FF',
-    backgroundColor: '#D5E9F1',
-    lineColor: '#27849E',
-    textColor: '#000',
-  },
-  {
-    strokeColor: '#A4B0C6',
-    backgroundColor: '#eee',
-    lineColor: '#8f9bb1',
-    textColor: '#000',
-  },
-]
+import { colorPalettes } from '../../colorPalettes'
 
 interface Props {
   data: any
@@ -68,12 +24,12 @@ interface Props {
 }
 
 const defaultConfig: DrawingConfig = {
+  isCompact: false,
   fontSize: 16,
   fontFamily: 'Arial',
   xt: 30,
   yt: 30,
   ct: 3,
-  isCompact: true,
   maxWid: 100,
   minWid: 50,
   strokeWidth: 3,
@@ -88,16 +44,19 @@ const Hierarchy: FC<Props> = (props: Props) => {
   const [config, setConfig] = useState<DrawingConfig>({
     ...defaultConfig,
     ...props.config,
-    colorScheme: setColorScheme(defaultConfig.colorScheme, props.config!.colorScheme!),
+    colorScheme: setColorScheme(defaultConfig.colorScheme, props.config?.colorScheme),
   })
 
+  // update config if props.config changes
   useEffect(() => {
     setConfig((config) => ({
       ...config,
       ...props.config,
-      colorScheme: setColorScheme(config.colorScheme, props.config!.colorScheme!),
+      colorScheme: setColorScheme(config.colorScheme, props.config?.colorScheme),
     }))
   }, [props.config])
+
+  // re-render canvas if config or props.data changes
   useEffect(() => {
     const canvas = document.getElementById('canvas') as HTMLCanvasElement
     const ctx = canvas.getContext('2d')!
@@ -162,6 +121,18 @@ const Hierarchy: FC<Props> = (props: Props) => {
         0,
       )
 
+    /**
+     * Draws a line between parent and child.
+     * @param parent - Coordinates of the parent
+     * @param curr - Coordinates of the child.
+     * @param curW - Width of the current element.
+     * @param curH - Height of the current element.
+     * @param parentW - Width of the parent element.
+     * @param parentH - Height of the parent element.
+     * @param xt - Horizontal spacing between elements.
+     * @param yt - Vertical spacing between elements.
+     * @param drawCompact - Flag indicating whether to draw in compact mode.
+     */
     function drawLine(
       parent: Coordinates,
       curr: Coordinates,
@@ -173,51 +144,98 @@ const Hierarchy: FC<Props> = (props: Props) => {
       yt: number,
       drawCompact: boolean,
     ) {
+      // Check if either the parent or child element is empty
       if (!ObjectLen(parent) || !ObjectLen(curr)) return
+
+      // Begin drawing path
       ctx.beginPath()
+      // Set line width
       ctx.lineWidth = 2
+      // Set line color
       ctx.strokeStyle = lineColor!
 
+      // Draw line based on compact mode
       if (drawCompact) {
+        // Compact mode
         ctx.moveTo(parent.x + xt / 2, parent.y + parentH + strokeWidth / 2)
         ctx.lineTo(parent.x + xt / 2, curr.y + curH / 2)
         ctx.lineTo(curr.x - strokeWidth / 2, curr.y + curH / 2)
       } else {
+        // Normal mode
         ctx.moveTo(parent.x + parentW / 2, parent.y + parentH + strokeWidth / 2)
         ctx.lineTo(parent.x + parentW / 2, parent.y + (parentH + yt / 2))
         ctx.lineTo(curr.x + curW / 2, parent.y + (parentH + yt / 2))
         ctx.lineTo(curr.x + curW / 2, curr.y - strokeWidth / 2)
       }
 
+      // Stroke the path
       ctx.stroke()
+      // Close the path
       ctx.closePath()
     }
-
+    /**
+     * Draws a textbox.
+     * @param cords - Coordinates of the top-left corner of the textbox.
+     * @param height - Height of the rectangle.
+     * @param width - Width of the rectangle.
+     */
     function drawRect(cords: Coordinates, height: number, width: number) {
+      // Begin drawing path
       ctx.beginPath()
+      // Set fill color
       ctx.fillStyle = backgroundColor!
+      // Draw rounded rectangle
       ctx.roundRect(cords.x, cords.y, width, height, boxRadius)
+      // Set stroke color
       ctx.strokeStyle = strokeColor!
+      // Set line width
       ctx.lineWidth = strokeWidth
+      // Stroke the path
       ctx.stroke()
+      // Fill the path
       ctx.fill()
+      // Close the path
       ctx.closePath()
     }
-
+    /**
+     * Draws text in textbox.
+     * @param lines - Array of text lines to draw.
+     * @param cords - Coordinates of the top-left corner of the text box.
+     * @param lineHeight - Height of each line of text.
+     */
     function drawText(lines: string[], cords: Coordinates, lineHeight: number) {
+      // Initialize y-coordinate for drawing text
       let y = cords.y
+      // Begin drawing path
       ctx.beginPath()
+      // Set text fill color
       ctx.fillStyle = textColor!
+      // Set text baseline to top
       ctx.textBaseline = 'top'
 
+      // Loop through each line of text
       for (const line of lines) {
+        // Draw text at specified coordinates
         ctx.fillText(line, cords.x + boxPadding, y + boxPadding)
+        // Fill the text
         ctx.fill()
+        // Update y-coordinate for next line of text
         y += lineHeight
       }
+      // Close the path
       ctx.closePath()
     }
-
+    /**
+     * Draws a full hierarchy diagram recursively on the canvas.
+     * @param obj - Object representing the current hierarchy node.
+     * @param depth - Current depth level in the hierarchy.
+     * @param prevXPos - Previous x-position for drawing elements.
+     * @param prevYPos - Previous y-position for drawing elements.
+     * @param parent - Coordinates of the parent element.
+     * @param parentW - Width of the parent element.
+     * @param parentH - Height of the parent element.
+     * @returns Object containing updated x and y positions after drawing the hierarchy.
+     */
     function drawObjFull(
       obj: object,
       depth: number,
@@ -227,42 +245,73 @@ const Hierarchy: FC<Props> = (props: Props) => {
       parentW: number,
       parentH: number,
     ) {
+      // Set font for drawing text
       setFont(ctx, fontFamily, fontSize)
+
+      // Iterate through each child element in the hierarchy
       Object.entries(obj).forEach((elem) => {
+        // Calculate the number of leaf nodes for the current element
         const curLeafCount = Math.max(1, countLeafs(elem[1], 0, depth, false, ct))
+        // Calculate the width of the current element
         const { wid } = calcWidth({ [elem[0]]: elem[1] }, 0, depth, false, 0, 0, ctx, config)
 
+        // Calculate text height for the current element
         const textHT = textHeight(elem[0], ctx)
 
+        // Calculate the width of the current element including strokes
         const curWidth = wid + strokeWidth * curLeafCount
         let rectWid = Math.max(minWid, Math.min(maxWid, curWidth))
 
+        // Calculate the number of lines and total height of the text box
         const { lines, lineCount } = getLines(ctx, elem[0], rectWid)
         let rectHeight = textHT * lineCount
 
+        // Add padding to width and height
         rectWid += boxPadding * 2
         rectHeight += boxPadding * 2
 
+        // Calculate the coordinates for drawing the current element
         const cords = getCords(curWidth / 2, prevYPos, prevXPos, rectHeight, rectWid)
 
+        // Draw the rectangle representing the current element
         drawRect(cords, rectHeight, rectWid)
+
+        // Draw a connecting line between the current element and its parent
         if (depth > 1) drawLine(parent, cords, rectWid, rectHeight, parentW, parentH, xt, yt, isCompact)
+
+        // Draw the text inside the rectangle
         drawText(lines, cords, textHT)
+
+        // Check if the current element has child elements
         const childCount = countChilds(Object.keys(elem[1]))
         if (childCount) {
+          // Calculate the width of the parent element
           const parentWidth = curWidth
+
+          // Update y-position for next element
           prevYPos += rectHeight + yt
+
+          // Increment depth
           depth += 1
+
+          // Recursively draw child elements
           drawObjFull(elem[1], depth, prevXPos, prevYPos, cords, rectWid, rectHeight)
+
+          // Decrement depth after drawing child elements
           depth -= 1
+
+          // Restore previous y-position
           prevYPos -= rectHeight + yt
-          // prevYPos = prevObj.prevYPos;
+
+          // Update x-position for next element
           prevXPos += parentWidth + boxSpacing * curLeafCount
         } else {
+          // Update x-position for next element if there are no child elements
           prevXPos += rectWid + boxSpacing
         }
       })
 
+      // Return updated x and y positions
       return { prevXPos, prevYPos }
     }
 
@@ -277,34 +326,51 @@ const Hierarchy: FC<Props> = (props: Props) => {
       parentW: number,
       parentH: number,
     ) {
+      // Iterate through each child element in the hierarchy
       Object.entries(obj).forEach((elem, i) => {
+        // Calculate the number of leaf nodes for the current element
         const curLeafCount = Math.max(1, countLeafs({ [elem[0]]: elem[1] }, 0, depth, isCompact, ct))
+        // Calculate the number of siblings for the current element
         const siblingsCount = getSibCount(elem[0], obj)
 
+        // Set font for drawing text
         setFont(ctx, fontFamily, fontSize)
+
+        // Determine if drawing should be in compact mode
         const childCount = countChilds(Object.keys(elem[1]))
         const drawCompact = depth != ct - 1 && (depth > ct || siblingsCount > 1) ? true : false
 
+        // Calculate text width and height for the current element
         const textWid = textWidth(elem[0], ctx)
         const textHT = textHeight(elem[0], ctx)
 
+        // Calculate the width of the current element
         const { wid } = calcWidth({ [elem[0]]: elem[1] }, 0, depth, isCompact, cDepth, 0, ctx, config)
         const curWidth = wid + strokeWidth * curLeafCount
         let rectWid = Math.max(minWid, Math.min(maxWid, textWid))
+
+        // Calculate the number of lines and total height of the text box
         const { lines, lineCount } = getLines(ctx, elem[0], rectWid)
         let rectHeight = textHT * lineCount
 
+        // Add padding to width and height
         rectWid += boxPadding * 2
         rectHeight += boxPadding * 2
 
+        // Calculate the current depth of the element
         const curDepth = getDepth(elem[1])
+
+        // Store the previous maximum compact depth
         const prevMaxCDepth = maxCDepth
         if (!drawCompact) maxCDepth = 0
 
+        // Calculate the x-position of the element within compact mode
         const posXCompact = drawCompact ? (curWidth - xt * curDepth) / 2 + cDepth * xt : curWidth / 2 + cDepth * xt
 
+        // Calculate the x-position of the element
         const posX = depth == ct || childCount > 2 ? (curWidth - xt * curDepth) / 2 : curWidth / 2
 
+        // Calculate the coordinates for drawing the current element
         const cords = drawCompact
           ? getCords(
               posXCompact,
@@ -322,18 +388,32 @@ const Hierarchy: FC<Props> = (props: Props) => {
               depth == ct || childCount > 2 ? curWidth - xt * curDepth : rectWid,
               strokeWidth,
             )
+
+        // Draw the textbox
         drawRect(cords, rectHeight, rectWid)
+
+        // Draw a connecting line between the current element and its parent
         if (depth > 1) drawLine(parent, cords, rectWid, rectHeight, parentW, parentH, xt, yt, drawCompact)
+
+        // Draw the text inside the textbox
         drawText(lines, cords, textHT)
 
+        // Check if the current element has child elements
         if (childCount) {
+          // Update y-position for next element
           prevYPos += rectHeight + yt
+
+          // Update the current depth within compact mode
           cDepth = depth > 1 && (depth >= ct || drawCompact || childCount > 2) ? cDepth + 1 : 0
 
+          // Update the maximum compact depth
           maxCDepth = Math.max(cDepth, maxCDepth)
+
+          // Store the width of the
           const curWidthT = curWidth
           const parentPrevHeight = prevYPos
 
+          // Increase depth and draw child elements recursively
           depth += 1
           const prevObj = drawObjCompact(
             elem[1],
@@ -347,8 +427,11 @@ const Hierarchy: FC<Props> = (props: Props) => {
             rectHeight,
           )
           depth -= 1
-          //
+
+          // Restore the maximum compact depth
           maxCDepth = prevObj.maxCDepth
+
+          // Adjust positions based on drawing mode
           if (depth >= ct || drawCompact || childCount > 2) cDepth = cDepth - 1
           if (!drawCompact) {
             maxCDepth += prevMaxCDepth
@@ -359,14 +442,18 @@ const Hierarchy: FC<Props> = (props: Props) => {
             prevYPos = prevObj.prevYPos
           }
         } else {
+          // Update x-position for next element
           if (!drawCompact) {
             prevXPos += curWidth
-            prevXPos += boxSpacing * curLeafCount // box spacing
+            prevXPos += boxSpacing * curLeafCount // Add box spacing
             maxCDepth += prevMaxCDepth
-          } else prevYPos += rectHeight + yt
+          } else {
+            prevYPos += rectHeight + yt
+          }
         }
       })
 
+      // Return the updated x-position, y-position, and maximum compact depth
       return { prevXPos, prevYPos, maxCDepth }
     }
   }, [config, props.data])
