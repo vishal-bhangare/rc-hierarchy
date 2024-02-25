@@ -1,10 +1,10 @@
 export interface DrawingConfig {
+  isCompact: boolean // Indicates whether to draw in compact mode (true) or normal mode (false)
   fontSize: number // The size of the font used for text rendering
   fontFamily: string // The font family for text rendering
   xt: number // The horizontal spacing from the parent's x position
   yt: number // The vertical spacing applied for each depth level
   ct: number // The threshold depth for drawing nodes in compact mode (default is 3; does not support depths greater than 3)
-  isCompact: boolean // Indicates whether to draw in compact mode (true) or normal mode (false)
   maxWid: number // The maximum width for text boxes
   minWid: number // The minimum width for text boxes
   strokeWidth: number // The width of strokes (borders)
@@ -16,12 +16,11 @@ export interface DrawingConfig {
 }
 
 export interface DrawingConfigPropI {
+  isCompact?: boolean // Indicates whether to draw in compact mode (true) or normal mode (false)
   fontSize?: number // The size of the font used for text rendering
   fontFamily?: string // The font family for text rendering
   xt?: number // The horizontal spacing from the parent's x position
   yt?: number // The vertical spacing applied for each depth level
-  ct?: number // The threshold depth for drawing nodes in compact mode (default is 3; does not support depths greater than 3)
-  isCompact?: boolean // Indicates whether to draw in compact mode (true) or normal mode (false)
   maxWid?: number // The maximum width for text boxes
   minWid?: number // The minimum width for text boxes
   strokeColor?: string // The color used for strokes (borders)
@@ -34,13 +33,13 @@ export interface DrawingConfigPropI {
 }
 
 export interface Coordinates {
-  x: number
-  y: number
+  x: number // X-coordinate
+  y: number // Y-coordinate
 }
 
 export interface ColorScheme {
-  strokeColor?: string
-  backgroundColor?: string
-  lineColor?: string
-  textColor?: string
+  strokeColor?: string // Color of the border/stroke of a textbox
+  backgroundColor?: string // Background color of a textbox
+  lineColor?: string // Color of lines connecting parent to child
+  textColor?: string // Color of text
 }
