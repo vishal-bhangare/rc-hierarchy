@@ -1,5 +1,4 @@
 import { ColorScheme, Coordinates, DrawingConfig } from './entities'
-
 /**
  * Calculates the coordinates for textbox.
  * @param x - The x-coordinate of the point.
@@ -42,28 +41,28 @@ export function getDepth(obj: any): number {
 /**
  * Counts the number of leaf nodes in an object tree.
  * @param obj - The object to count leaf nodes for.
- * @param cnt - Current count of leaf nodes.
  * @param depth - Current depth.
- * @param isc - Flag indicating drawing mode.
  * @param ct - Maximum depth to consider.
+ * @param isCompact - Flag indicating drawing mode.
  * @returns The count of leaf nodes.
  */
-export function countLeafs(obj: any, cnt: number, depth: number, isc: boolean, ct: number): number {
-  Object.entries(obj).forEach((child) => {
-    if (countChilds(child[1])) {
-      if (depth == ct - 1 && isc) {
-        cnt += countChilds(child[1]) == 2 ? 2 : 1
-      }
-      depth += 1
-      cnt = countLeafs(child[1], cnt, depth, isc, ct)
-      depth -= 1
+export function countLeafNodes(obj: any, depth: number, ct: number, isCompact = false): number {
+  let count = 0
+  for (const key in obj) {
+    if (Object.keys(obj[key]).length === 0) {
+      count++
+      // console.log(key, depth);
     } else {
-      if (!isc) cnt += 1
+      depth += 1
+      count += countLeafNodes(obj[key], depth, ct, isCompact)
+      depth -= 1
     }
-  })
-  return cnt
+    if (isCompact && depth > ct) {
+      return count
+    }
+  }
+  return count
 }
-
 /**
  * Counts the number of children of an object.
  * @param obj - The object to count children for.
@@ -209,10 +208,10 @@ export function textHeight(text: string, ctx: CanvasRenderingContext2D): number 
 
 /**
  * Calculates the width of an object.
- * @param obj - The object to calculate the width for.
+ * @param prevObj - The object to calculate the width for.
  * @param wid - Current width value.
  * @param depth - Current depth.
- * @param isc - Flag indicating drawing mode.
+ * @param isCompact - Flag indicating drawing mode.
  * @param cDepth - Current depth of child nodes.
  * @param maxi - Maximum width encountered.
  * @param ctx - The CanvasRenderingContext2D object.
@@ -225,7 +224,6 @@ export function calcWidth(
   obj: any,
   wid: number,
   depth: number,
-  isc: boolean,
   cDepth: number,
   maxi: number,
   ctx: CanvasRenderingContext2D,
@@ -238,19 +236,17 @@ export function calcWidth(
   setFont(ctx, fontFamily, fontSize)
 
   Object.entries(obj).forEach((child) => {
-    const sibcnt: number = getSibCount(child[0], obj)
     const childCnt: number = countChilds(child[1])
-    const drawCompact: boolean = isCompact && depth != ct - 1 && (depth > ct || sibcnt > 1) ? true : false
-
+    const drawCompact: boolean = isCompact && depth > ct ? true : false
     let curWid: number = Math.max(minWid, Math.min(textWidth(child[0], ctx), maxWid))
     const textHT: number = textHeight(child[0], ctx)
     const { lineCount } = getLines(ctx, child[0], curWid)
     let curH: number = textHT * lineCount
 
-    curWid += boxPadding * 2
+    // curWid += boxSpacing * 2;
     curH += boxPadding * 2
-
-    if (isc) curWid += cDepth * xt
+    // curWid += strokeWidth * curLeafCount;
+    if (isCompact) curWid += cDepth * xt
     if (!drawCompact) maxi = 0
     maxi = Math.max(curWid, maxi)
     maxH = Math.max(maxH, prevH + curH)
@@ -259,20 +255,24 @@ export function calcWidth(
 
     if (childCnt) {
       if (!isCompact) prevH += curH + yt
-      cDepth = depth > 1 && (depth >= ct || drawCompact || childCnt > 2) ? cDepth + 1 : 0
+      cDepth = depth >= ct ? cDepth + 1 : 0
       const parentPrevH: number = prevH
       depth += 1
-      obj = calcWidth(child[1], 0, depth, isc, cDepth, maxi, ctx, config, prevH, maxH)
+      const prevObj = calcWidth(child[1], 0, depth, cDepth, maxi, ctx, config, prevH, maxH)
       depth -= 1
 
-      if (depth >= ct || drawCompact || childCnt > 2) cDepth = cDepth - 1
+      if (depth >= ct) cDepth = cDepth - 1
 
-      wid = drawCompact ? obj.wid : wid + obj.wid
-      maxi = obj.maxi
-      prevH = !drawCompact ? parentPrevH - (curH + yt) : obj.prevH
-      maxH = obj.maxH
+      if (drawCompact) {
+        wid = prevObj.wid
+      } else {
+        wid = wid + prevObj.wid
+      }
+      maxi = prevObj.maxi
+      prevH = !drawCompact ? parentPrevH - (curH + yt) : prevObj.prevH
+      maxH = prevObj.maxH
     } else {
-      if (isc && drawCompact) wid = Math.max(curWid, maxi)
+      if (drawCompact) wid = Math.max(curWid, maxi)
       else wid += curWid
     }
   })

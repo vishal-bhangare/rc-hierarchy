@@ -4,12 +4,11 @@ import { DrawingConfig, DrawingConfigPropI, Coordinates } from '../../entities'
 import {
   calcWidth,
   countChilds,
-  countLeafs,
+  countLeafNodes,
   getCords,
   getDepth,
   getLines,
   getRandomInt,
-  getSibCount,
   ObjectLen,
   setColorScheme,
   setFont,
@@ -81,13 +80,22 @@ const Hierarchy: FC<Props> = (props: Props) => {
     const { strokeColor, backgroundColor, textColor, lineColor } = colorScheme
 
     const data = props.data
-    const totalLeafs = countLeafs(data, 0, 1, isCompact, ct)
-    const { wid, maxH } = calcWidth(data, 0, 1, isCompact, 0, 0, ctx, config)
+    const totalLeafs = countLeafNodes(data, 1, ct, isCompact)
+    console.log(totalLeafs)
+    const { wid, maxH } = calcWidth(data, 0, 1, 0, 0, ctx, config)
+
     let newCanvasWidth = wid
-    newCanvasWidth += strokeWidth * totalLeafs // adding stroke width to canvas width
-    newCanvasWidth += boxSpacing * totalLeafs + boxSpacing // adding box-spacing to canvas width and 1 pt of boxSpacing to compensate last node
+    let newCanvasHeight = maxH
+    // adding stroke width to canvas width
+    if (!isCompact) newCanvasWidth += strokeWidth * totalLeafs
+    // adding boxspacing to canvas width
+    newCanvasWidth += boxSpacing * 2 * totalLeafs
+    // adding boxpadding to canvas width
+    newCanvasWidth += boxPadding * 2 * totalLeafs
+
+    //adding canvas padding to canvas width and height
     newCanvasWidth += canvasPadding * 2
-    const newCanvasHeight = maxH + canvasPadding * 2 + strokeWidth
+    newCanvasHeight += canvasPadding * 2
 
     canvas!.width = newCanvasWidth
     canvas!.height = newCanvasHeight
@@ -102,7 +110,6 @@ const Hierarchy: FC<Props> = (props: Props) => {
           x: 0,
           y: 0,
         },
-        0,
         0,
         wid,
         0,
@@ -251,9 +258,9 @@ const Hierarchy: FC<Props> = (props: Props) => {
       // Iterate through each child element in the hierarchy
       Object.entries(obj).forEach((elem) => {
         // Calculate the number of leaf nodes for the current element
-        const curLeafCount = Math.max(1, countLeafs(elem[1], 0, depth, false, ct))
+        const curLeafCount = countLeafNodes({ [elem[0]]: elem[1] }, depth, ct, isCompact)
         // Calculate the width of the current element
-        const { wid } = calcWidth({ [elem[0]]: elem[1] }, 0, depth, false, 0, 0, ctx, config)
+        const { wid } = calcWidth({ [elem[0]]: elem[1] }, 0, depth, 0, 0, ctx, config)
 
         // Calculate text height for the current element
         const textHT = textHeight(elem[0], ctx)
@@ -286,7 +293,7 @@ const Hierarchy: FC<Props> = (props: Props) => {
         const childCount = countChilds(Object.keys(elem[1]))
         if (childCount) {
           // Calculate the width of the parent element
-          const parentWidth = curWidth
+          const curWidthT = curWidth
 
           // Update y-position for next element
           prevYPos += rectHeight + yt
@@ -302,12 +309,15 @@ const Hierarchy: FC<Props> = (props: Props) => {
 
           // Restore previous y-position
           prevYPos -= rectHeight + yt
-
+          prevXPos += boxSpacing * 2 * curLeafCount
+          prevXPos += boxPadding * 2 * curLeafCount
           // Update x-position for next element
-          prevXPos += parentWidth + boxSpacing * curLeafCount
+          prevXPos += curWidthT
         } else {
           // Update x-position for next element if there are no child elements
-          prevXPos += rectWid + boxSpacing
+          prevXPos += curWidth
+          prevXPos += boxSpacing * 2
+          prevXPos += boxPadding * 2
         }
       })
 
@@ -322,54 +332,46 @@ const Hierarchy: FC<Props> = (props: Props) => {
       prevYPos: number,
       parent: Coordinates,
       cDepth: number,
-      maxCDepth: number,
       parentW: number,
       parentH: number,
     ) {
       // Iterate through each child element in the hierarchy
-      Object.entries(obj).forEach((elem, i) => {
+      Object.entries(obj).forEach((elem) => {
         // Calculate the number of leaf nodes for the current element
-        const curLeafCount = Math.max(1, countLeafs({ [elem[0]]: elem[1] }, 0, depth, isCompact, ct))
-        // Calculate the number of siblings for the current element
-        const siblingsCount = getSibCount(elem[0], obj)
+        const curLeafCount = countLeafNodes({ [elem[0]]: elem[1] }, depth, ct, isCompact)
 
         // Set font for drawing text
         setFont(ctx, fontFamily, fontSize)
 
         // Determine if drawing should be in compact mode
         const childCount = countChilds(Object.keys(elem[1]))
-        const drawCompact = depth != ct - 1 && (depth > ct || siblingsCount > 1) ? true : false
+        const drawCompact = depth > ct ? true : false
 
         // Calculate text width and height for the current element
         const textWid = textWidth(elem[0], ctx)
         const textHT = textHeight(elem[0], ctx)
 
         // Calculate the width of the current element
-        const { wid } = calcWidth({ [elem[0]]: elem[1] }, 0, depth, isCompact, cDepth, 0, ctx, config)
-        const curWidth = wid + strokeWidth * curLeafCount
+        const { wid: curWidth } = calcWidth({ [elem[0]]: elem[1] }, 0, depth, cDepth, 0, ctx, config)
+
         let rectWid = Math.max(minWid, Math.min(maxWid, textWid))
+        // Add padding to width and height
+        rectWid += boxPadding * 2
 
         // Calculate the number of lines and total height of the text box
         const { lines, lineCount } = getLines(ctx, elem[0], rectWid)
         let rectHeight = textHT * lineCount
-
-        // Add padding to width and height
-        rectWid += boxPadding * 2
         rectHeight += boxPadding * 2
-
         // Calculate the current depth of the element
         const curDepth = getDepth(elem[1])
-
-        // Store the previous maximum compact depth
-        const prevMaxCDepth = maxCDepth
-        if (!drawCompact) maxCDepth = 0
 
         // Calculate the x-position of the element within compact mode
         const posXCompact = drawCompact ? (curWidth - xt * curDepth) / 2 + cDepth * xt : curWidth / 2 + cDepth * xt
 
         // Calculate the x-position of the element
-        const posX = depth == ct || childCount > 2 ? (curWidth - xt * curDepth) / 2 : curWidth / 2
+        const posX = depth >= ct ? (curWidth - xt * curDepth) / 2 : curWidth / 2
 
+        console.log(elem[0], curWidth, prevXPos)
         // Calculate the coordinates for drawing the current element
         const cords = drawCompact
           ? getCords(
@@ -385,10 +387,9 @@ const Hierarchy: FC<Props> = (props: Props) => {
               prevYPos,
               prevXPos,
               rectHeight,
-              depth == ct || childCount > 2 ? curWidth - xt * curDepth : rectWid,
+              depth >= ct ? curWidth - xt * curDepth : rectWid,
               strokeWidth,
             )
-
         // Draw the textbox
         drawRect(cords, rectHeight, rectWid)
 
@@ -404,10 +405,7 @@ const Hierarchy: FC<Props> = (props: Props) => {
           prevYPos += rectHeight + yt
 
           // Update the current depth within compact mode
-          cDepth = depth > 1 && (depth >= ct || drawCompact || childCount > 2) ? cDepth + 1 : 0
-
-          // Update the maximum compact depth
-          maxCDepth = Math.max(cDepth, maxCDepth)
+          cDepth = depth >= ct ? cDepth + 1 : 0
 
           // Store the width of the
           const curWidthT = curWidth
@@ -415,29 +413,17 @@ const Hierarchy: FC<Props> = (props: Props) => {
 
           // Increase depth and draw child elements recursively
           depth += 1
-          const prevObj = drawObjCompact(
-            elem[1],
-            depth,
-            prevXPos,
-            prevYPos,
-            cords,
-            cDepth,
-            maxCDepth,
-            rectWid,
-            rectHeight,
-          )
+          const prevObj = drawObjCompact(elem[1], depth, prevXPos, prevYPos, cords, cDepth, rectWid, rectHeight)
           depth -= 1
 
-          // Restore the maximum compact depth
-          maxCDepth = prevObj.maxCDepth
-
           // Adjust positions based on drawing mode
-          if (depth >= ct || drawCompact || childCount > 2) cDepth = cDepth - 1
+          if (depth >= ct) cDepth = cDepth - 1
           if (!drawCompact) {
-            maxCDepth += prevMaxCDepth
             prevYPos = parentPrevHeight - (rectHeight + yt)
-            prevXPos += i == 0 ? curWidthT : prevObj.prevXPos + curWidthT + xt
-            prevXPos += boxSpacing * curLeafCount
+            // prevXPos += i == 0 ? curWidthT : prevObj.prevXPos + curWidthT + xt;
+            prevXPos += curWidthT
+            prevXPos += boxSpacing * 2 * curLeafCount
+            prevXPos += boxPadding * 2 * curLeafCount
           } else {
             prevYPos = prevObj.prevYPos
           }
@@ -445,8 +431,8 @@ const Hierarchy: FC<Props> = (props: Props) => {
           // Update x-position for next element
           if (!drawCompact) {
             prevXPos += curWidth
-            prevXPos += boxSpacing * curLeafCount // Add box spacing
-            maxCDepth += prevMaxCDepth
+            prevXPos += boxSpacing * 2
+            prevXPos += boxPadding * 2
           } else {
             prevYPos += rectHeight + yt
           }
@@ -454,7 +440,7 @@ const Hierarchy: FC<Props> = (props: Props) => {
       })
 
       // Return the updated x-position, y-position, and maximum compact depth
-      return { prevXPos, prevYPos, maxCDepth }
+      return { prevXPos, prevYPos }
     }
   }, [config, props.data])
 

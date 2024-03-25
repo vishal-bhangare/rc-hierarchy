@@ -21,6 +21,7 @@ export interface DrawingConfigPropI {
   fontFamily?: string // The font family for text rendering
   xt?: number // The horizontal spacing from the parent's x position
   yt?: number // The vertical spacing applied for each depth level
+  ct?: number // The depth threshold for drawing nodes in compact form
   maxWid?: number // The maximum width for text boxes
   minWid?: number // The minimum width for text boxes
   strokeColor?: string // The color used for strokes (borders)
