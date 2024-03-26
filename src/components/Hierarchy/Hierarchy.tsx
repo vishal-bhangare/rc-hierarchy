@@ -1,6 +1,6 @@
 import React, { FC, useEffect, useState } from 'react'
-import { DrawingConfig, DrawingConfigPropI, Coordinates } from '../../entities'
-
+import { defaultConfig } from '../../config'
+import { Coordinates, DrawingConfig, DrawingConfigPropI } from '../../entities'
 import {
   calcWidth,
   countChilds,
@@ -8,35 +8,16 @@ import {
   getCords,
   getDepth,
   getLines,
-  getRandomInt,
   ObjectLen,
   setColorScheme,
   setFont,
   textHeight,
   textWidth,
 } from '../../utils'
-import { colorPalettes } from '../../colorPalettes'
 
 interface Props {
   data: any
   config?: DrawingConfigPropI
-}
-
-const defaultConfig: DrawingConfig = {
-  isCompact: false,
-  fontSize: 16,
-  fontFamily: 'Arial',
-  xt: 30,
-  yt: 30,
-  ct: 3,
-  maxWid: 100,
-  minWid: 50,
-  strokeWidth: 3,
-  boxSpacing: 15,
-  boxPadding: 4,
-  boxRadius: 5,
-  canvasPadding: 20,
-  colorScheme: colorPalettes[getRandomInt(0, colorPalettes.length - 1)],
 }
 
 const Hierarchy: FC<Props> = (props: Props) => {
@@ -81,11 +62,10 @@ const Hierarchy: FC<Props> = (props: Props) => {
 
     const data = props.data
     const totalLeafs = countLeafNodes(data, 1, ct, isCompact)
-    console.log(totalLeafs)
-    const { wid, maxH } = calcWidth(data, 0, 1, 0, 0, ctx, config)
+    const { wid, height } = calcWidth(data, 0, 1, 0, 0, ctx, config)
 
     let newCanvasWidth = wid
-    let newCanvasHeight = maxH
+    let newCanvasHeight = height
     // adding stroke width to canvas width
     if (!isCompact) newCanvasWidth += strokeWidth * totalLeafs
     // adding boxspacing to canvas width
@@ -371,7 +351,6 @@ const Hierarchy: FC<Props> = (props: Props) => {
         // Calculate the x-position of the element
         const posX = depth >= ct ? (curWidth - xt * curDepth) / 2 : curWidth / 2
 
-        console.log(elem[0], curWidth, prevXPos)
         // Calculate the coordinates for drawing the current element
         const cords = drawCompact
           ? getCords(

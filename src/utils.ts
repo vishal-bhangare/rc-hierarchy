@@ -94,47 +94,6 @@ export function getRandomInt(min: number, max: number): number {
 }
 
 /**
- * Returns the number of siblings of a given node in a tree structure.
- * @param nodeKey - The key of the node.
- * @param data - The data representing the tree.
- * @returns The number of siblings of the node.
- */
-export function getSibCount(nodeKey: string, data: any): number {
-  const parentNode = getParentNode(nodeKey, data)
-
-  if (parentNode) {
-    return Object.keys(parentNode).filter((key) => key !== nodeKey).length
-  } else {
-    return 0 // Node has no parent, so it has no siblings
-  }
-}
-
-/**
- * Finds and returns the parent node of a given node in a tree structure.
- * @param nodeKey - The key of the node whose parent is to be found.
- * @param data - The data representing the tree.
- * @returns The parent node of the given node.
- */
-export function getParentNode(nodeKey: string, data: any): any {
-  let parentNode: any = null
-
-  function traverse(obj: any) {
-    if (obj && typeof obj === 'object') {
-      if (nodeKey in obj) {
-        parentNode = obj
-      } else {
-        for (const key in obj) {
-          traverse(obj[key])
-        }
-      }
-    }
-  }
-
-  traverse(data)
-  return parentNode
-}
-
-/**
  * Splits a string of text into multiple lines based on a maximum width.
  * @param ctx - The CanvasRenderingContext2D object.
  * @param text - The text to split.
@@ -203,7 +162,8 @@ export function textWidth(text: string, ctx: CanvasRenderingContext2D): number {
  */
 export function textHeight(text: string, ctx: CanvasRenderingContext2D): number {
   const metrics = ctx.measureText(text)
-  return metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent
+  const height = metrics?.actualBoundingBoxAscent + metrics?.actualBoundingBoxDescent
+  return height
 }
 
 /**
@@ -217,7 +177,7 @@ export function textHeight(text: string, ctx: CanvasRenderingContext2D): number 
  * @param ctx - The CanvasRenderingContext2D object.
  * @param config - Drawing configuration.
  * @param prevH - Previous height value.
- * @param maxH - Maximum height encountered.
+ * @param height - Maximum height encountered.
  * @returns An object containing calculated width, maximum width, maximum height and previous height.
  */
 export function calcWidth(
@@ -229,18 +189,18 @@ export function calcWidth(
   ctx: CanvasRenderingContext2D,
   config: DrawingConfig,
   prevH: number = 0,
-  maxH: number = 0,
-): { wid: number; maxi: number; maxH: number; prevH: number } {
+  height: number = 0,
+): { wid: number; height: number; maxi: number; prevH: number } {
   const { fontFamily, fontSize, isCompact, ct, maxWid, minWid, boxPadding, xt, yt } = config
 
   setFont(ctx, fontFamily, fontSize)
 
-  Object.entries(obj).forEach((child) => {
-    const childCnt: number = countChilds(child[1])
+  Object.entries(obj).forEach((elem) => {
+    const childCnt: number = countChilds(elem[1])
     const drawCompact: boolean = isCompact && depth > ct ? true : false
-    let curWid: number = Math.max(minWid, Math.min(textWidth(child[0], ctx), maxWid))
-    const textHT: number = textHeight(child[0], ctx)
-    const { lineCount } = getLines(ctx, child[0], curWid)
+    let curWid: number = Math.max(minWid, Math.min(textWidth(elem[0], ctx), maxWid))
+    const textHT: number = textHeight(elem[0], ctx)
+    const { lineCount } = getLines(ctx, elem[0], curWid)
     let curH: number = textHT * lineCount
 
     // curWid += boxSpacing * 2;
@@ -249,7 +209,7 @@ export function calcWidth(
     if (isCompact) curWid += cDepth * xt
     if (!drawCompact) maxi = 0
     maxi = Math.max(curWid, maxi)
-    maxH = Math.max(maxH, prevH + curH)
+    height = Math.max(height, prevH + curH)
 
     if (isCompact) prevH += curH + yt
 
@@ -258,7 +218,7 @@ export function calcWidth(
       cDepth = depth >= ct ? cDepth + 1 : 0
       const parentPrevH: number = prevH
       depth += 1
-      const prevObj = calcWidth(child[1], 0, depth, cDepth, maxi, ctx, config, prevH, maxH)
+      const prevObj = calcWidth(elem[1], 0, depth, cDepth, maxi, ctx, config, prevH, height)
       depth -= 1
 
       if (depth >= ct) cDepth = cDepth - 1
@@ -270,14 +230,13 @@ export function calcWidth(
       }
       maxi = prevObj.maxi
       prevH = !drawCompact ? parentPrevH - (curH + yt) : prevObj.prevH
-      maxH = prevObj.maxH
+      height = prevObj.height
     } else {
       if (drawCompact) wid = Math.max(curWid, maxi)
       else wid += curWid
     }
   })
-
-  return { wid, maxi, maxH, prevH }
+  return { wid, height, maxi, prevH }
 }
 
 /**
