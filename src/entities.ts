@@ -13,6 +13,7 @@ export interface DrawingConfig {
   boxRadius: number // The roundness of the text boxes
   canvasPadding: number // The space inside the canvas (padding),
   colorScheme: ColorScheme
+  canvasBackgroundColor: string // The canvas background color
 }
 
 export interface DrawingConfigPropI {
@@ -31,6 +32,7 @@ export interface DrawingConfigPropI {
   boxRadius?: number // The roundness of the text boxes
   canvasPadding?: number // The space inside the canvas (padding);
   colorScheme?: ColorScheme
+  canvasBackgroundColor?: string // The canvas background color
 }
 
 export interface Coordinates {

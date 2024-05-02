@@ -17,4 +17,5 @@ export const defaultConfig: DrawingConfig = {
   boxRadius: 5,
   canvasPadding: 20,
   colorScheme: colorPalettes[getRandomInt(0, colorPalettes.length - 1)],
+  canvasBackgroundColor: '#fff',
 }

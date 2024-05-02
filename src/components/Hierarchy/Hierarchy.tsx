@@ -56,6 +56,7 @@ const Hierarchy: FC<Props> = (props: Props) => {
       boxPadding,
       boxRadius,
       canvasPadding,
+      canvasBackgroundColor,
     } = config
 
     const { strokeColor, backgroundColor, textColor, lineColor } = colorScheme
@@ -79,6 +80,11 @@ const Hierarchy: FC<Props> = (props: Props) => {
 
     canvas!.width = newCanvasWidth
     canvas!.height = newCanvasHeight
+
+    //adding background color to canvas
+    ctx.globalCompositeOperation = 'source-over'
+    ctx.fillStyle = canvasBackgroundColor
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
 
     if (isCompact)
       drawObjCompact(
